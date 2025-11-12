@@ -1,0 +1,6 @@
+cd C:\Users\E3014895\pagebox
+C:\php83\php.exe -S localhost:8000
+
+
+#232368ff
+#3d87d6ff
