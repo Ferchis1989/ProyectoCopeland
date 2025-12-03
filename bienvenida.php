@@ -93,7 +93,7 @@ if (!isset($_SESSION["usuario"])) {
     <div class="menu-container">
         <div class="menu-container">
     <a href="Bajacajas.php" class="menu-btn">Dar de baja cajas</a>
-    <a href="etiquetaQR.php" class="menu-btn">Reimprimir etiqueta Datamatrix</a>
+    <a href="etiquetaQR.php" class="menu-btn">Reimprimir etiqueta Doble Datamatrix</a>
     <a href="etiquetaL.php" class="menu-btn">Reimprimir etiqueta L</a>
     <a href="etiquetaWC.php" class="menu-btn">Reimprimir etiqueta Welcome</a>
     <a href="historial.php" class="menu-btn">Bloqueo de seriales</a>
