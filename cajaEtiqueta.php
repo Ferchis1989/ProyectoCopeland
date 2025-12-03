@@ -156,6 +156,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </style>
 </head>
 <body>
+    <img src="Copeland Logo_16_9_PNG.webp" alt="Logo" class="corner-logo">
 <div class="container">
     <h2>Reimprimir etiqueta de paquete</h2>
 

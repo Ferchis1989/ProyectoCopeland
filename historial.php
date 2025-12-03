@@ -66,7 +66,7 @@ if(isset($_POST['modelo']) && isset($_POST['op_id']) && !isset($_POST['accion'])
     responder_json($uuids);
 }
 
-// Bloquear (ejecutar procedimiento almacenado)
+// Bloquear 
 if(isset($_POST['accion']) && $_POST['accion'] === "bloquear"){
     $modelo = $_POST['modelo'];  
     $op_id = $_POST['op_id'];     
@@ -168,7 +168,6 @@ if(isset($_POST['accion']) && $_POST['accion'] === 'exportar_seriales'){
     $params = [$op_id, $op_id_end, $modelo];
     $stmt = sqlsrv_query($conn, $sql, $params);
 
-    // Preparar salida CSV
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="seriales_'.$modelo.'_'.$op_id.'.csv"');
 
@@ -261,11 +260,26 @@ th, td { padding: 8px; text-align: center; }
 .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 400px; border-radius: 8px; text-align: center; }
 .modal button { background: #232368ff; color: #fff; padding: 10px 20px; margin-top: 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
 .modal button:hover { background: #3d87d6ff; }
+
+
+.corner-logo {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: 220px;
+    max-width: 22vw;
+    opacity: 0.95;
+    z-index: 9999;
+    pointer-events: none; 
+}
+@media (max-width: 600px) {
+    .corner-logo { width: 90px; top: 8px; right: 8px; }
+}
 </style>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-
+<img src="Copeland%20Logo_16_9_PNG.webp" alt="Copeland logo" class="corner-logo" loading="lazy">
 <div class="container">
     <h2>Historial de Operaciones</h2>
 

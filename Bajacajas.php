@@ -141,9 +141,25 @@ if ($stmt_detalle === false) {
             margin-bottom: 18px;
             text-align: left;
         }
+
+        /* Logo fijo en la esquina superior derecha */
+        .corner-logo {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            width: 220px;
+            max-width: 25vw;
+            opacity: 0.95;
+            z-index: 9999;
+            pointer-events: none; 
+        }
+        @media (max-width: 600px) {
+            .corner-logo { width: 90px; top: 8px; right: 8px; }
+        }
     </style>
 </head>
 <body>
+        <img src="Copeland%20Logo_16_9_PNG.webp" alt="Copeland logo" class="corner-logo" loading="lazy">
 <div class="container">
     <h2>Dar de baja cajas</h2>
     <?php if ($mensaje): ?>
