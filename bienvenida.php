@@ -96,7 +96,6 @@ if (!isset($_SESSION["usuario"])) {
     <a href="etiquetaQR.php" class="menu-btn">Reimprimir etiqueta Datamatrix</a>
     <a href="etiquetaL.php" class="menu-btn">Reimprimir etiqueta L</a>
     <a href="etiquetaWC.php" class="menu-btn">Reimprimir etiqueta Welcome</a>
-    <a href="cajaEtiqueta.php" class="menu-btn">Etiquetas finales</a>
     <a href="historial.php" class="menu-btn">Bloqueo de seriales</a>
     <a href="logout.php" class="menu-log">Cerrar sesión</a>
 </div>
