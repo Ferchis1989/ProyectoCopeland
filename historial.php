@@ -38,6 +38,10 @@ if(isset($_POST['modelo']) && isset($_POST['op_id']) && !isset($_POST['accion'])
     $op_id = $_POST['op_id'];
     $op_id_end = substr($op_id, 0, 2) . '999';
 
+    // fechas opcionales en formato YYYY-MM-DD
+    $start_date = trim($_POST['start_date'] ?? '');
+    $end_date   = trim($_POST['end_date'] ?? '');
+
     $sql = "
     WITH RankedUut AS (
         SELECT 
@@ -56,6 +60,22 @@ if(isset($_POST['modelo']) && isset($_POST['op_id']) && !isset($_POST['accion'])
     WHERE rn = 1";
     
     $params = [$op_id, $op_id_end, $modelo];
+
+    // Si ambas fechas vienen, validarlas y agregar filtro por rango (incluye todo el día end_date)
+    if ($start_date !== '' && $end_date !== '') {
+        $sd = DateTime::createFromFormat('Y-m-d', $start_date);
+        $ed = DateTime::createFromFormat('Y-m-d', $end_date);
+        if ($sd && $ed) {
+            // insertar condición que filtra por d.uut_when en la subconsulta
+            $sql = str_replace(
+                "WHERE (d.op_id > ? AND d.op_id < ?)","WHERE (d.op_id > ? AND d.op_id < ?) AND d.uut_when >= ? AND d.uut_when < DATEADD(day,1,?)",
+                $sql
+            );
+            $params[] = $sd->format('Y-m-d');
+            $params[] = $ed->format('Y-m-d');
+        }
+    }
+
     $stmt = sqlsrv_query($conn, $sql, $params);
     $uuids = [];
     if($stmt){
@@ -114,12 +134,12 @@ SELECT
     END AS Estado
 FROM dbo.Box b
 WHERE b.Mod_Id = ?
-  AND CAST(b.InsertedAt AS DATE) = '2024-02-09'
+  AND d.InsertedAt> DATEADD(HOUR,-4,DATEADD(DAY, DATEDIFF(DAY, 0, GETDATE()), 0))
 ORDER BY b.InsertedAt DESC
 ";
 
 
-//AND d.InsertedAt> DATEADD(HOUR,-4,DATEADD(DAY, DATEDIFF(DAY, 0, GETDATE()), 0))
+//AND CAST(b.InsertedAt AS DATE) = '2024-02-09'
 
     $params = [$modelo];
     $stmt = sqlsrv_query($conn, $sql, $params);
@@ -138,7 +158,6 @@ if($stmt){
     responder_json($cajas);
 }
 
-// Cargar todos los modelos para el menú desplegable
 $sql = "SELECT DISTINCT mod_id FROM dbo.model ORDER BY mod_id";
 $stmt = sqlsrv_query($conn, $sql);
 $modelos = [];
@@ -149,8 +168,9 @@ while($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)){
 if(isset($_POST['accion']) && $_POST['accion'] === 'exportar_seriales'){
     $modelo = $_POST['modelo'] ?? '';
     $op_id  = $_POST['op_id'] ?? '';
+    $start_date = trim($_POST['start_date'] ?? '');
+    $end_date   = trim($_POST['end_date'] ?? '');
 
-    // Preparar consulta
     $op_id_end = substr($op_id, 0, 2).'999';
     $sql = "
     WITH RankedUut AS (
@@ -166,7 +186,19 @@ if(isset($_POST['accion']) && $_POST['accion'] === 'exportar_seriales'){
     FROM RankedUut
     WHERE rn = 1";
     $params = [$op_id, $op_id_end, $modelo];
-    $stmt = sqlsrv_query($conn, $sql, $params);
+
+    if ($start_date !== '' && $end_date !== '') {
+        $sd = DateTime::createFromFormat('Y-m-d', $start_date);
+        $ed = DateTime::createFromFormat('Y-m-d', $end_date);
+        if ($sd && $ed) {
+            $sql = str_replace(
+                "WHERE (d.op_id > ? AND d.op_id < ?)","WHERE (d.op_id > ? AND d.op_id < ?) AND d.uut_when >= ? AND d.uut_when < DATEADD(day,1,?)",
+                $sql
+            );
+            $params[] = $sd->format('Y-m-d');
+            $params[] = $ed->format('Y-m-d');
+        }
+    }
 
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="seriales_'.$modelo.'_'.$op_id.'.csv"');
@@ -178,7 +210,7 @@ if(isset($_POST['accion']) && $_POST['accion'] === 'exportar_seriales'){
     $i = 1;
     if($stmt){
         while($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)){
-            // Forzar como texto para evitar notación científica
+            // Forzar como texto 
             fputcsv($output, [$i++, "'".$row['uut_id']]);
         }
     }
@@ -236,7 +268,6 @@ if(isset($_POST['accion']) && $_POST['accion'] === 'exportar_cajas'){
 <meta charset="UTF-8">
 <title>Historial</title>
 <style>
-/* --- TU CSS ORIGINAL --- */
 body { background: #aad3f0; font-family: Arial, sans-serif; }
 .container { background: #fff; padding: 40px 60px; margin: 80px auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px; text-align: center; }
 label { display: block; margin-bottom: 8px; color: #000; font-weight: bold; }
@@ -275,6 +306,41 @@ th, td { padding: 8px; text-align: center; }
 @media (max-width: 600px) {
     .corner-logo { width: 90px; top: 8px; right: 8px; }
 }
+
+/* nueva regla para alinear filtros en una fila */
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center; /* alinea verticalmente inputs y botones */
+    justify-content: flex-start;
+    margin-bottom: 18px;
+}
+
+/* cada control (label + input/select) */
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+}
+
+/* campos pequeños (fechas) */
+.filter-field.small { min-width: 140px; max-width: 180px; }
+
+/* asegurar que botones tengan altura consistente */
+.filters .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* responsive */
+@media (max-width: 800px) {
+    .filters { gap: 8px; }
+    .filter-field { min-width: 140px; max-width: 48%; }
+    .filter-field.small { max-width: 40%; }
+    .filters .actions { width: 100%; flex-wrap: wrap; }
+}
 </style>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
@@ -283,25 +349,44 @@ th, td { padding: 8px; text-align: center; }
 <div class="container">
     <h2>Historial de Operaciones</h2>
 
-    <label for="modelo">Modelo:</label>
-    <div class="select-wrapper">
-        <input type="text" id="modelo" placeholder="Escriba para buscar modelo">
-        <ul id="lista_modelos">
-            <?php foreach($modelos as $m): ?>
-                <li><?= $m ?></li>
-            <?php endforeach; ?>
-        </ul>
+    <!-- AGRUPA LOS CONTROLES EN .filters -->
+    <div class="filters">
+        <div class="filter-field">
+            <label for="modelo">Modelo:</label>
+            <div class="select-wrapper">
+                <input type="text" id="modelo" placeholder="Escriba para buscar modelo">
+                <ul id="lista_modelos"> 
+                    <?php foreach($modelos as $m): ?>
+                        <li><?= $m ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </div>
+
+        <div class="filter-field">
+            <label for="operaciones">Operaciones:</label>
+            <select id="operaciones">
+                <option value="">Seleccione un modelo primero</option>
+            </select>
+        </div>
+
+        <div class="filter-field small">
+            <label for="fecha_desde">Fecha desde:</label>
+            <input type="date" id="fecha_desde" min="2024-01-01" />
+        </div>
+
+        <div class="filter-field small">
+            <label for="fecha_hasta">Fecha hasta:</label>
+            <input type="date" id="fecha_hasta" min="2024-01-01" />
+        </div>
+
+        <div class="actions">
+            <button id="buscar">Buscar Números de Serie</button>
+            <button id="bloquear">Bloquear</button>
+            <button id="cajasB">Cajas</button>
+        </div>
     </div>
-
-    <label for="operaciones">Operaciones:</label>
-    <select id="operaciones">
-        <option value="">Seleccione un modelo primero</option>
-    </select>
-
-    <button id="buscar">Buscar Números de Serie</button>
-    <button id="bloquear">Bloquear</button>
-    <button id="cajasB">Cajas</button>
-
+    
     <div>
         <button class="menu-log" onclick="location.href='bienvenida.php'">Regresar al Menú</button>
     </div>
@@ -357,13 +442,15 @@ $(document).ready(function(){
     $('#buscar').click(function(){
         let modelo = $('#modelo').val();
         let op_id = $('#operaciones').val();
+        let fecha_desde = $('#fecha_desde').val();
+        let fecha_hasta = $('#fecha_hasta').val();
         if(!modelo || !op_id){ alert('Seleccione modelo y operación primero'); return; }
 
         $.ajax({
             url: 'historial.php',
             type: 'POST',
             dataType: 'json',
-            data: {modelo: modelo, op_id: op_id},
+            data: {modelo: modelo, op_id: op_id, start_date: fecha_desde, end_date: fecha_hasta},
             success: function(uuids){
                 if(uuids.length === 0){
                     $('#seriales').html('<p class="info-caja">No hay números de serie para esta operación.</p>');
